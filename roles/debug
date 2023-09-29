@@ -1,0 +1,9 @@
+- name: print vars on screen
+  debug:
+    var: enp0s3
+	verbosity: 2
+
+- name: print vars on screen
+  debug:
+    var: hostvars[inventory_hostname]
+    verbosity: 2
