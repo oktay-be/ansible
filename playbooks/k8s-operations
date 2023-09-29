@@ -1,0 +1,80 @@
+COREDNS
+
+sudo ansible-playbook -i inventory/appstoreclient/hosts.ini --extra-vars="execution_mode=merge target_host=appstoreclient-kubernetes-master your_ansible_user=oktay"  playbooks/coredns/coredns.playbook.yml -vv
+
+CONTAINERD
+
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/gdi-hamlar/infratest/hosts.ini \
+-e execution_mode=install \
+-e target_host=k8sw02 \
+-e ansible_user=devops \
+playbooks/container_runtimes/containerd.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+CERT-MANAGER
+sudo ansible-playbook \
+-i inventory/shopfloor/gb365devTest/hosts.ini \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+--vault-id=****@****_vault.txt \
+-e ansible_user=devops  \
+-e target_host=k8sm02 \
+playbooks/certificates/k8s-cert-manager/internal-ca-certificate.yml \
+--key-file=~/.ssh/id_rsa_devops \
+-e execution_mode=install \
+vv
+
+#K3S INSTALL
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/shopfloor/edge02/hosts.ini \
+-e ansible_user=devops \
+-e execution_mode=install \
+-e target_host=****pc02  \
+playbooks/on-premise/k3s.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+# WITH KUBEADM
+sudo ansible-playbook --vault-id infra@/Users/user/certificate/ansible_infra_password --extra-vars=" execution_mode=install target_host=k8s-master1 ansible_ssh_pass=****" -i inventory/local/hosts  playbooks/kubernetes/kubernetes-master.playbook.yml -vv
+
+sudo ansible-playbook --vault-id infra@/Users/user/certificate/ansible_infra_password --extra-vars=" execution_mode=install target_host=k8s-slave1 ansible_ssh_pass=****" -i inventory/local/hosts  playbooks/kubernetes/kubernetes-slave.playbook.yml -vv
+
+sudo ansible-playbook --vault-id infra@/Users/user/certificate/ansible_infra_password --extra-vars=" execution_mode=install target_host=k8s-slave2 ansible_ssh_pass=****" -i inventory/local/hosts  playbooks/kubernetes/kubernetes-slave.playbook.yml -vv
+------- K8S INSTALL --------
+
+# UNINSTALL K8S
+sudo ansible-playbook --vault-id=infra@prompt -i inventory/appstoreserver/hosts.ini --extra-vars="execution_mode=remove target_host=appstore-gb-kubernetes-master ansible_user=oktay" playbooks/kubernetes/kubernetes-master.playbook.yml -vv &&\
+
+sudo ansible-playbook --vault-id=infra@prompt -i inventory/appstoreserver/hosts.ini --extra-vars="execution_mode=remove target_host=appstore-gb-kubernetes-worker ansible_user=oktay" playbooks/kubernetes/kubernetes-slave.playbook.yml -vv
+
+#NODE LABELING
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/shopfloor/edge02/hosts.ini \
+-e execution_mode=install \
+-e target_host=****pc02 \
+-e ansible_user=devops \
+playbooks/kubernetes/node-labels.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+#INSTALL INGRESS-NGINX
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/shopfloor/edge02/hosts.ini \
+-e execution_mode=install \
+-e target_host=****pc02 \
+-e ansible_user=devops \
+playbooks/ingress-nginx/ingress-nginx-controller.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+
+# KUBERNETES NODE REMOVE ADD
+
+sudo ansible-playbook -i inventory/gb-dev/hosts.ini  --vault-id=infra@prompt --extra-vars="execution_mode=remove target_host=dev-kubernetes-slave3 ansible_user=oktay" playbooks/kubernetes/kubernetes-slave.playbook.yml -vv && \
+
+sudo ansible-playbook -i inventory/gb-dev/hosts.ini  --vault-id=infra@prompt --extra-vars="execution_mode=install target_host=dev-kubernetes-slave3 ansible_user=oktay" playbooks/kubernetes/kubernetes-slave.playbook.yml -vv

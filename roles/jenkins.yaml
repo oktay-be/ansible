@@ -1,0 +1,177 @@
+- name: DEBUG PURPOSES Display hostvars[inventory_hostname]
+  debug:
+    var: hostvars[inventory_hostname]
+
+- name: ping jenkins.devops.****.io
+  shell: "ping jenkins.devops.****.io -c1"
+  register: ping_master
+
+- name: DEBUG PURPOSES get agent ip
+  debug:
+    var: hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses[hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses|length-1]
+
+- name: DEBUG PURPOSES debug ping_master output
+  debug:
+    var: ping_master
+
+- name: DEBUG PURPOSES find master IP in ping_master output
+  debug:
+    var: ping_master.stdout.find("{{ hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses[hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses|length-1] }}")
+
+- name: set fact one_node_jenkins
+  set_fact:
+    one_node_jenkins: True
+  when: ping_master.stdout.find("{{ hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses[hostvars[inventory_hostname].ansible_facts.all_ipv4_addresses|length-1] }}") >0
+
+- name: DEBUG PURPOSES debug one_node_jenkins
+  debug:
+    var: one_node_jenkins
+
+- name: add test casc template
+  template:
+    src: ../../../../roles/jenkins/master/templates/casc/casc-config.yaml.copy.j2
+    dest: "~/casc-config"
+
+- name: include role to check if 2nd partition exists and if symlinks have to be created
+  include_role:
+    name: centos7/2nd-partition-symlink
+  vars:
+    destination_root: /var/lib
+    symlink_folder_list:
+      - jenkins
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: create jenkins user
+  user:
+    name: "{{ jenkins_node_user }}"
+    state: present
+    home: "{{ jenkins_node_user_home }}"
+    groups: docker
+    append: yes
+
+- name: Copy skeleton files
+  shell: "cp /etc/skel/.bash* {{ jenkins_node_user_home }}/"
+  ignore_errors: yes
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: recursive chown on jenkins home folder
+  shell: "chown -R {{ jenkins_node_user }}:{{ jenkins_node_user }} {{ jenkins_node_user_home }}/"
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: include role java
+  include_role:
+    name: java
+
+- name: include role git
+  include_role:
+    name: git
+
+- name: include role - create docker folder in home and add auth config
+  include_role:
+    name: add-private-docker-registry-auth
+  vars:
+    user: 'root'
+    home: '/root'
+
+- name: include role - create docker folder in home and add auth config
+  include_role:
+    name: add-private-docker-registry-auth
+  vars:
+    user: "{{ jenkins_node_user }}"
+    home: "{{ jenkins_node_user_home }}"
+
+- name: include role add-docker-registry-to-etc-hosts
+  include_role:
+    name: add-docker-registry-to-etc-hosts
+
+- name: getting a jenkins-crumb
+  include_role:
+    name: jenkins/common
+    tasks_from: get-crumb
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: create ssh folder
+  file:
+    path: "{{ jenkins_node_user_home }}/.ssh"
+    state: directory
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: create authorized_keys file
+  copy:
+    src: jenkins_node_id_rsa.pub
+    dest: "{{ jenkins_node_user_home }}/.ssh/authorized_keys"
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: include tasks to create key id
+  include_tasks: "install-credentials.yml"
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: checking if node {{ inventory_hostname }} exists
+  uri:
+    url: 'https://{{ jenkins_master_public_host }}/computer/{{ inventory_hostname }}'
+    user: "{{ jenkins_web_admin_username }}"
+    password: "{{ jenkins_web_admin_password }}"
+    force_basic_auth: yes
+    return_content: yes
+  register: node_response
+  ignore_errors: true
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name: Registering variable of if node {{ inventory_hostname }} has started
+  set_fact:
+   node_exists : "{{node_response.status == 200}}"
+  when: one_node_jenkins is not defined or not one_node_jenkins
+
+- name : create item name
+  uri:
+    method: POST
+    url: 'https://{{ jenkins_master_public_host }}/computer/doCreateItem?name={{ inventory_hostname }}&type=hudson.slaves.DumbSlave'
+    user: "{{ jenkins_web_admin_username }}"
+    password: "{{ jenkins_web_admin_password }}"
+    force_basic_auth: yes
+    headers:
+      Jenkins-Crumb: "{{ jenkins_crumb }}"
+    status_code: 302
+    body: |
+      json={
+        "name":"{{ inventory_hostname }}",
+        "nodeDescription":"",
+        "numExecutors":"1",
+        "remoteFS":"{{ jenkins_node_user_home }}",
+        "labelString":"",
+        "mode":"NORMAL",
+        "":[
+           "hudson.plugins.sshslaves.SSHLauncher",
+           "hudson.slaves.RetentionStrategy$Always"
+        ],
+        "launcher":{
+           "stapler-class":"hudson.plugins.sshslaves.SSHLauncher",
+           "$class":"hudson.plugins.sshslaves.SSHLauncher",
+           "host": "{{ ansible_hostname }}",
+           "credentialsId":"{{ jenkins_node_credentials_id }}",
+           "":"3",
+           "sshHostKeyVerificationStrategy":{
+              "stapler-class":"hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy",
+              "$class":"hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy"
+           },
+           "port":"{{ jenkins_node_ssh_port }}",
+           "javaPath":"",
+           "jvmOptions":"",
+           "prefixStartSlaveCmd":"",
+           "suffixStartSlaveCmd":"",
+           "launchTimeoutSeconds":"",
+           "maxNumRetries":"",
+           "retryWaitTime":"",
+           "tcpNoDelay":true,
+           "workDir":""
+        },
+        "retentionStrategy":{
+           "stapler-class":"hudson.slaves.RetentionStrategy$Always",
+           "$class":"hudson.slaves.RetentionStrategy$Always"
+        },
+        "nodeProperties":{
+           "stapler-class-bag":"true"
+        },
+        "type":"hudson.slaves.DumbSlave"
+      }
+  when: (node_exists is not defined or not node_exists) and (one_node_jenkins is not defined or not one_node_jenkins)

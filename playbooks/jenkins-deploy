@@ -1,0 +1,10 @@
+JENKINS MASTER
+sudo ansible-playbook --vault-id infra@prompt -i inventory/local-jenkins/hosts.ini -i inventory/devops/hosts.ini --extra-vars="ansible_user=ertaso ansible_port=2623 execution_mode=install target_host=local-jenkins-master" playbooks/jenkins/masters.yml
+
+JOBS
+
+sudo ansible-playbook --vault-id infra@prompt -i inventory/local-jenkins/hosts.ini -i inventory/devops/hosts.ini --extra-vars="ansible_user=ertaso ansible_port=2623 execution_mode=install target_host=local-jenkins-master" playbooks/jenkins/master-create-devops-jobs.yml -vv
+
+sudo ansible-playbook --vault-id infra@prompt -i inventory/local-jenkins/hosts.ini -i inventory/devops/hosts.ini --extra-vars="ansible_user=ertaso ansible_port=2623 execution_mode=install target_host=local-jenkins-master" playbooks/jenkins/batch.yml -vv
+
+sudo ansible-playbook --vault-id infra@prompt -i inventory/local-jenkins/hosts.ini -i inventory/devops/hosts.ini --extra-vars="ansible_user=ertaso ansible_port=2623 execution_mode=install target_host=local-jenkins-master" playbooks/jenkins/casc-platform.yml -vv

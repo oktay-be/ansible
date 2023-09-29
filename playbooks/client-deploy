@@ -1,0 +1,47 @@
+ansible-hamlar-prod-rmt-client-and-microservices
+
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+--vault-id ****@/Users/user/certificate/vault \
+-i inventory/gdi-hamlar/prod/hosts.ini \
+-e execution_mode=install \
+-e target_host=prod-kubernetes-master1 \
+-e ansible_user=devops \
+playbooks/rmt/client.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/gdi-hamlar/prod/hosts.ini \
+-e execution_mode=install \
+-e target_host=prod-kubernetes-master1 \
+-e ansible_user=devops \
+playbooks/ingress-nginx/ingress-default-landingpage.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+
+
+sudo ansible-playbook \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/gdi-hamlar/prod/hosts.ini \
+-e execution_mode=install \
+-e target_host=prod-kubernetes-master1 \
+-e ansible_user=devops \
+playbooks/kubernetes/config-kubectl.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv
+
+
+sudo ansible-playbook  \
+--vault-id infra@/Users/user/certificate/ansible_infra_password \
+-i inventory/gdi-hamlar/prod/hosts.ini \
+-e execution_mode=install \
+-e target_host=prod-kubernetes-master1 \
+-e ansible_user=devops \
+-e user_to_add=developer \
+-e target_groups=docker,rmt \
+playbooks/users/user-hardening.yml \
+--key-file=/var/root/.ssh/id_rsa_devops \
+-vv

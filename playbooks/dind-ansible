@@ -1,0 +1,123 @@
+on dind
+
+docker run -it --rm     -e DOCKER_TLS_CERTDIR=/certs     -v some-docker-certs-client:/certs/client:ro     docker:20.10.6-dind sh
+
+docker run -it --rm     -e DOCKER_TLS_CERTDIR=/certs     -v some-docker-certs-client:/certs/client:ro     docker:20.10.6 sh
+
+
+rust problem
+apk add gcc musl-dev python3-dev libffi-dev openssl-dev cargo
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+NOT WORKING
+
+
+
+
+
+
+WORKS ??
+
+docker run -d --name=base1 --privileged docker:19.03.5-dind
+
+docker exec -it base1 sh
+
+apk add --update --no-cache build-base python3-dev python3 libffi-dev libressl-dev bash git gettext curl busybox-extras curl tcpdump nano bind-tools \
+ && curl -O https://bootstrap.pypa.io/get-pip.py \
+ && python3 get-pip.py \
+ && pip install ansible
+
+
+----------
+
+docker run -d --name=oktay_ansible --privileged docker-registry.com/oktay_ansible:0.3.0-beta
+
+docker exec -it oktay_ansible docker ps
+
+
+--------------------PREPS--------------------
+
+docker run -d --name=base1 --privileged docker:19.03.5-dind
+
+docker exec -it base1 sh
+
+apk add --update --no-cache build-base python3-dev python3 libffi-dev libressl-dev bash git gettext busybox-extras curl \
+ && curl -O https://bootstrap.pypa.io/get-pip.py \
+ && python3 get-pip.py
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | 
+
+source $HOME/.cargo/env
+update-ca-certificates
+
+pip install ansible
+
+--------------------USAGE--------------------
+ANSIBLE_PASSWORD_FILE_PATH=/Users/user/ansible_developer_password
+SERVICES_LIST_PATH=/Users/user/service-list
+DEST_DOCKER_REGISTRY_CERT_PATH=/Users/user/docker-registry.com.crt
+
+docker run -d --name=sandind --privileged --dns=8.8.8.8 \
+-v $ANSIBLE_PASSWORD_FILE_PATH:/data/ansible_developer_password \
+-v $SERVICES_LIST_PATH:/data/service-list \
+-v $DEST_DOCKER_REGISTRY_CERT_PATH:/usr/local/share/ca-certificates/ca.crt \
+-v $(pwd):/data \
+-v chartsdirectory:/tmp \
+-w="/data" \
+--add-host helm-chart-repo.oktay.io:104.214.239.25 \
+--add-host helm-chart-repo.oktay.io:**** \
+docker-registry.com/sandind:0.2.0
+
+docker exec -it sandind ansible-playbook \
+--vault-id developer@ansible_developer_password \
+-e dockerized_execution=true \
+-e service_list_path=/data/service-list \
+-e dest_docker_registry_domain=docker-registry.com \
+-e dest_docker_registry_ip=**** \
+-e dest_docker_registry_username=docker-registry-oktay \
+-e dest_docker_registry_password=fuLjrVuAquecVma \
+-e dest_chartmuseum_domain=helm-chart-repo.oktay.io \
+-e dest_chartmuseum_port=8080 \
+-e dest_chartmuseum_ip=**** \
+-e dest_chartmuseum_user=user \
+-e dest_chartmuseum_password="UhsX8m#XK9VkF3o" \
+playbooks/migrate.yml \
+-vv
+
+docker rm -f sandind
+
+-----
+
+ANSIBLE_PASSWORD_FILE_PATH=/Users/user/ansible_developer_password
+SERVICES_LIST_PATH=/Users/user/service-list
+DEST_DOCKER_REGISTRY_CERT_PATH=/Users/user/docker-registry.com.crt
+
+nerdctl -n k8s.io run -d --name=sandind --privileged \
+-v $ANSIBLE_PASSWORD_FILE_PATH:/data/ansible_developer_password \
+-v $SERVICES_LIST_PATH:/data/service-list \
+-v $DEST_DOCKER_REGISTRY_CERT_PATH:/usr/local/share/ca-certificates/ca.crt \
+-v $(pwd):/data \
+-v chartsdirectory:/tmp \
+-w="/data" \
+--add-host helm-chart-repo.oktay.io:104.214.239.25 \
+--add-host helm-chart-repo.oktay.io:**** \
+docker-registry.com/sandind:0.2.0
+
+nerdctl  -n k8s.io exec -it sandind ansible-playbook \
+--vault-id developer@ansible_developer_password \
+-e dockerized_execution=true \
+-e service_list_path=/data/service-list \
+-e dest_docker_registry_domain=docker-registry.com \
+-e dest_docker_registry_ip=**** \
+-e dest_docker_registry_username=docker-registry-oktay \
+-e dest_docker_registry_password=fuLjrVuAquecVma \
+-e dest_chartmuseum_domain=helm-chart-repo.oktay.io \
+-e dest_chartmuseum_port=8080 \
+-e dest_chartmuseum_ip=**** \
+-e dest_chartmuseum_user=user \
+-e dest_chartmuseum_password="UhsX8m#XK9VkF3o" \
+playbooks/migrate.yml \
+-vv
+
+nerdctl -n k8s.io rm -f sandind

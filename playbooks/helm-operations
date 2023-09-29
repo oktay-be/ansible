@@ -1,0 +1,5 @@
+HELM INSTALL
+sudo ansible-playbook -i inventory/local --vault-id=infra@prompt --extra-vars="execution_mode=install target_host=k8s-master1 ansible_port=22 ansible_password=***** ansible_user=root helm_user=root" playbooks/helm/helm/crud.yml -vv
+
+HELM ADD REPO
+sudo ansible-playbook -i inventory/local --vault-id=infra@prompt --extra-vars="execution_mode=add target_host=k8s-master1 ansible_port=22 ansible_password=***** ansible_user=root helm_user=root" playbooks/helm/repo/crud.yml -vv
